@@ -17,13 +17,6 @@ import static org.apache.camel.builder.endpoint.StaticEndpointBuilders.platformH
 @Singleton
 @AllArgsConstructor
 public class XmlRoute extends RouteBuilder {
-  public static final String BODY_TEMPLATE = """
-      <extracted>
-      %s
-      %s
-      %s
-      </extracted>""";
-
   private final XmlProcessor processor;
 
   @Override
@@ -61,7 +54,11 @@ public class XmlRoute extends RouteBuilder {
         .append("        <%1$s>%2$s</%1$s>".formatted(key, value.trim()))
         .append(System.lineSeparator()));
     additionalValuesString.append("    </additionalProperties>");
-    exchange.getIn()
-        .setBody(BODY_TEMPLATE.formatted(request, response, additionalValuesString.toString()));
+    exchange.getIn().setBody("""
+        <extracted>
+        %s
+        %s
+        %s
+        </extracted>""".formatted(request, response, additionalValuesString.toString()));
   }
 }
