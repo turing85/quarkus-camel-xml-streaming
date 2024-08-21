@@ -36,76 +36,117 @@ public class XmlProcessor implements Processor {
   public static final String PROPERTY_NAME_REQUEST = "property-request";
   public static final String PROPERTY_NAME_RESPONSE = "property-response";
 
-  private final XMLInputFactory xmlInputFactory;
-  private final XMLOutputFactory xmlOutputFactory;
+  private final XMLInputFactory inputFactory;
+  private final XMLOutputFactory outputFactory;
 
   @Override
+  @SuppressWarnings("unchecked")
   public void process(Exchange exchange) throws XMLStreamException {
-    @SuppressWarnings("unchecked")
-    List<String> additionalValuesToExtract =
-        exchange.getProperty(PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT, List.of(), List.class);
-    Result result = parse(exchange.getIn().getBody(String.class), additionalValuesToExtract);
-    exchange.setProperty(PROPERTY_NAME_ADDITIONAL_VALUES, result.additionalValues());
+
+    Result result = parse(exchange.getIn().getBody(String.class),
+        exchange.getProperty(PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT, List.of(), List.class));
+
+    exchange.setProperty(PROPERTY_NAME_ADDITIONAL_VALUES,
+        Collections.unmodifiableMap(result.additionalValues()));
     exchange.setProperty(PROPERTY_NAME_REQUEST, result.request());
     exchange.setProperty(PROPERTY_NAME_RESPONSE, result.response());
   }
 
   private Result parse(String input, List<String> additionalValuesToExtract)
       throws XMLStreamException {
-    StringWriter requestStringWriter = new StringWriter();
-    StringWriter responseStringWriter = new StringWriter();
-    Map<String, StringWriter> additionalStringWriters =
-        constructAdditionalStringWriters(additionalValuesToExtract);
+    StringWriter requestWriter = new StringWriter();
+    StringWriter responseWriter = new StringWriter();
+    Map<String, StringWriter> additionalWriters =
+        constructAdditionalWriters(additionalValuesToExtract);
 
-    parse(input, requestStringWriter, responseStringWriter, additionalStringWriters);
+    parse(input, requestWriter, responseWriter, additionalWriters);
 
-    return new Result(requestStringWriter.toString(), responseStringWriter.toString(),
-        additionalStringWriters.entrySet().stream()
-            .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().toString())));
+    // @formatter:off
+    return new Result(
+        requestWriter.toString(),
+        responseWriter.toString(),
+        additionalWriters.entrySet().stream()
+            .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                entry -> entry.getValue().toString())));
+    // @formatter:on
   }
 
-  private static Map<String, StringWriter> constructAdditionalStringWriters(
+  private static Map<String, StringWriter> constructAdditionalWriters(
       List<String> additionalValuesToExtract) {
-    Map<String, StringWriter> additionalStringWriters = new HashMap<>();
+    Map<String, StringWriter> additionalWriters =
+        HashMap.newHashMap(additionalValuesToExtract.size());
     for (String additionalValue : additionalValuesToExtract) {
-      additionalStringWriters.put(additionalValue, new StringWriter());
+      additionalWriters.put(additionalValue, new StringWriter());
     }
-    return additionalStringWriters;
+    return additionalWriters;
   }
 
-  private void parse(String input, StringWriter requestStringWriter,
-      StringWriter responseStringWriter, Map<String, StringWriter> additionalStringWriters)
-      throws XMLStreamException {
-    XMLEventReader reader = xmlInputFactory.createXMLEventReader(new StringReader(input));
-    XMLEventWriter requestXmlWriter = xmlOutputFactory.createXMLEventWriter(requestStringWriter);
-    XMLEventWriter responseXmlWriter = xmlOutputFactory.createXMLEventWriter(responseStringWriter);
-    Map<String, XMLEventWriter> additionalXmlWriters =
-        constructAdditionalXmlWriters(additionalStringWriters);
-    State state = new State().additionalNames(additionalXmlWriters.keySet());
+  private void parse(String input, StringWriter requestWriter, StringWriter responseWriter,
+      Map<String, StringWriter> additionalWriters) throws XMLStreamException {
+    List<ThrowingBiConsumer<XMLEvent, State>> handlers =
+        constructHandlers(requestWriter, responseWriter, additionalWriters);
+    State state = new State().additionalNames(additionalWriters.keySet());
 
+    XMLEventReader reader = inputFactory.createXMLEventReader(new StringReader(input));
     while (reader.hasNext()) {
       final XMLEvent event = reader.nextEvent();
 
-      List<ThrowingBiConsumer<XMLEvent, State>> handlers = additionalXmlWriters.entrySet().stream()
-          .map(entry -> constructValueRecorder(entry.getKey(), entry.getValue()))
-          .collect(Collectors.toCollection(ArrayList::new));
-      handlers.addAll(List.of(constructRequestRecorder(requestXmlWriter),
-          constructResponseRecorder(responseXmlWriter)));
-
       handleStartEvent(event, state);
-      handleEventRecording(event, state, Collections.unmodifiableList(handlers));
+      handleEventRecording(event, state, handlers);
       handleEndEvent(event, state);
     }
   }
 
-  private Map<String, XMLEventWriter> constructAdditionalXmlWriters(
+  private List<ThrowingBiConsumer<XMLEvent, State>> constructHandlers(StringWriter requestWriter,
+      StringWriter responseWriter, Map<String, StringWriter> additionalWriters)
+      throws XMLStreamException {
+    List<ThrowingBiConsumer<XMLEvent, State>> handlers =
+        new ArrayList<>(additionalWriters.size() + 2);
+    handlers.add(constructRequestRecorder(outputFactory.createXMLEventWriter(requestWriter)));
+    handlers.add(constructResponseRecorder(outputFactory.createXMLEventWriter(responseWriter)));
+    for (Map.Entry<String, XMLEventWriter> entry : toXmlWriters(additionalWriters).entrySet()) {
+      handlers.add(constructValueRecorder(entry.getKey(), entry.getValue()));
+    }
+    return Collections.unmodifiableList(handlers);
+  }
+
+  private Map<String, XMLEventWriter> toXmlWriters(
       Map<String, StringWriter> additionalStringWriters) throws XMLStreamException {
-    Map<String, XMLEventWriter> additionalXmlWriters = new HashMap<>();
+    Map<String, XMLEventWriter> additionalXmlWriters =
+        HashMap.newHashMap(additionalStringWriters.size());
     for (Map.Entry<String, StringWriter> entry : additionalStringWriters.entrySet()) {
       additionalXmlWriters.put(entry.getKey(),
-          xmlOutputFactory.createXMLEventWriter(entry.getValue()));
+          outputFactory.createXMLEventWriter(entry.getValue()));
     }
-    return additionalXmlWriters;
+    return Collections.unmodifiableMap(additionalXmlWriters);
+  }
+
+  private static ThrowingBiConsumer<XMLEvent, State> constructValueRecorder(String name,
+      XMLEventWriter writer) {
+    return (event, state) -> {
+      if (state.shouldRecord(name) && event.isCharacters()) {
+        writer.add(event);
+      }
+    };
+  }
+
+  private static ThrowingBiConsumer<XMLEvent, State> constructRequestRecorder(
+      XMLEventWriter requestWriter) {
+    return (event, state) -> {
+      if (state.recordRequest()) {
+        requestWriter.add(event);
+      }
+    };
+  }
+
+  private static ThrowingBiConsumer<XMLEvent, State> constructResponseRecorder(
+      XMLEventWriter responseWriter) {
+    return (event, state) -> {
+      if (state.recordResponse()) {
+        responseWriter.add(event);
+      }
+    };
   }
 
   private static void handleStartEvent(XMLEvent event, State state) {
@@ -141,33 +182,6 @@ public class XmlProcessor implements Processor {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  private static ThrowingBiConsumer<XMLEvent, State> constructRequestRecorder(
-      XMLEventWriter writer) {
-    return (event, state) -> {
-      if (state.recordRequest()) {
-        writer.add(event);
-      }
-    };
-  }
-
-  private static ThrowingBiConsumer<XMLEvent, State> constructResponseRecorder(
-      XMLEventWriter writer) {
-    return (event, state) -> {
-      if (state.recordResponse()) {
-        writer.add(event);
-      }
-    };
-  }
-
-  private static ThrowingBiConsumer<XMLEvent, State> constructValueRecorder(String name,
-      XMLEventWriter writer) {
-    return (event, state) -> {
-      if (state.shouldRecord(name) && event.isCharacters()) {
-        writer.add(event);
-      }
-    };
   }
 
   private static void handleEndEvent(XMLEvent event, State state) {
