@@ -1,6 +1,6 @@
 = quarkus-camel-xml-streaming
 
-This project shows how we can use https://docs.oracle.com/en/java/javase/21/docs/api/java.xml/javax/xml/stream/XMLEventReader.html[`XMLEventReader` (`docs.oracle.com`)] and https://docs.oracle.com/en/java/javase/21/docs/api/java.xml/javax/xml/stream/XMLEventWriter.html[`XMLEventWriter` (`docs.oracle.com`)] to process XML files.
+This project shows how we can use https://docs.oracle.com/en/java/javase/21/docs/api/java.xml/javax/xml/stream/XMLEventReader.html[`XMLEventReader` (`docs.oracle.com`)] to process XML files.
 
 == Contributors ✨
 

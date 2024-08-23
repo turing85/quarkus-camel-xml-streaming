@@ -7,6 +7,7 @@ import java.util.TreeMap;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 
+import de.turing85.quarkus.camel.xml.stream.processor.XmlProcessor;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import org.apache.camel.Exchange;
@@ -22,16 +23,17 @@ public class XmlRoute extends RouteBuilder {
   @Override
   public void configure() {
     // @formatter:off
-    from(
-        platformHttp("/xml")
-            .httpMethodRestrict(HttpMethod.POST.name())
-            .consumes(MediaType.APPLICATION_XML)
-            .produces(MediaType.APPLICATION_XML))
-        .id("xml-POST")
+    from(platformHttp("/xml")
+        .httpMethodRestrict(HttpMethod.POST.name())
+        .consumes(MediaType.APPLICATION_XML)
+        .produces(MediaType.APPLICATION_XML))
+        .log("charset = ${header.%s}".formatted(Exchange.CHARSET_NAME))
         .setProperty(XmlProcessor.PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT,
             constant(List.of("bang", "bongo")))
         .process(processor)
-        .process(XmlRoute::constructBody);
+        .process(XmlRoute::constructBody)
+        .convertBodyTo(byte[].class, "ISO-8859-15")
+    ;
     // @formatter:on
   }
 
@@ -59,6 +61,7 @@ public class XmlRoute extends RouteBuilder {
         %s
         %s
         %s
-        </extracted>""".formatted(request, response, additionalValuesString.toString()));
+        </extracted>""".formatted(request, response, additionalValuesString.toString()),
+        String.class);
   }
 }

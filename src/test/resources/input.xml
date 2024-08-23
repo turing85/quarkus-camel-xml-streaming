@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="ISO-8859-15" ?>
+<foo>
+    <bar>
+        <request>
+<baz>
+    <bang>1337</bang>
+</baz>
+        </request>
+    </bar>
+    <bing>
+        <response>
+<bongo>
+    ÄÖ
+</bongo>
+        </response>
+    </bing>
+</foo>
