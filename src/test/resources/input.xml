@@ -4,6 +4,9 @@
         <request>
 <baz>
     <bang>1337</bang>
+    <request>
+<boom>42</boom>
+    </request>
 </baz>
         </request>
     </bar>

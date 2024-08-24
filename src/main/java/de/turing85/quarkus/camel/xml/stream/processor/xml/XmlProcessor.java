@@ -1,20 +1,21 @@
-package de.turing85.quarkus.camel.xml.stream.processor;
+package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.xml.stream.XMLEventReader;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 import jakarta.inject.Singleton;
 
+import com.fasterxml.aalto.stax.InputFactoryImpl;
 import lombok.AllArgsConstructor;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
@@ -30,14 +31,15 @@ public class XmlProcessor implements Processor {
   public static final String PROPERTY_NAME_REQUEST = "property-request";
   public static final String PROPERTY_NAME_RESPONSE = "property-response";
 
-  private final XMLInputFactory inputFactory;
+  private static final InputFactoryImpl INPUT_FACTORY = new InputFactoryImpl();
 
   @Override
   @SuppressWarnings("unchecked")
   public void process(Exchange exchange) throws Exception {
     String converted = exchange.getIn().getBody(String.class);
-    Result result = parse(converted,
-        exchange.getProperty(PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT, List.of(), List.class));
+    Result result =
+        parse(converted, exchange.getProperty(PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT,
+            Collections.emptyList(), List.class));
     exchange.setProperty(PROPERTY_NAME_REQUEST, result.requests().getFirst());
     exchange.setProperty(PROPERTY_NAME_RESPONSE, result.responses().getFirst());
     exchange.setProperty(PROPERTY_NAME_ADDITIONAL_VALUES, result.additionalValues().entrySet()
@@ -54,7 +56,7 @@ public class XmlProcessor implements Processor {
       extractors.put(additionalValue, new ValueExtractor(additionalValue));
     }
 
-    XMLEventReader reader = inputFactory.createXMLEventReader(new StringReader(input));
+    XMLEventReader reader = INPUT_FACTORY.createXMLEventReader(new StringReader(input));
     List<String> path = new ArrayList<>();
     List<String> unmodifiable = List.copyOf(path);
     while (reader.hasNext()) {

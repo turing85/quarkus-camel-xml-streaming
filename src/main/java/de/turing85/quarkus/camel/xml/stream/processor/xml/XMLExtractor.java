@@ -1,4 +1,4 @@
-package de.turing85.quarkus.camel.xml.stream.processor;
+package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
 import java.util.List;
 import java.util.Set;

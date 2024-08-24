@@ -7,7 +7,7 @@ import java.util.TreeMap;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
 
-import de.turing85.quarkus.camel.xml.stream.processor.XmlProcessor;
+import de.turing85.quarkus.camel.xml.stream.processor.xml.XmlProcessor;
 import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import org.apache.camel.Exchange;
@@ -32,7 +32,7 @@ public class XmlRoute extends RouteBuilder {
             constant(List.of("bang", "bongo")))
         .process(processor)
         .process(XmlRoute::constructBody)
-        .convertBodyTo(byte[].class, "ISO-8859-15")
+        .convertBodyTo(byte[].class, "UTF-8")
     ;
     // @formatter:on
   }
