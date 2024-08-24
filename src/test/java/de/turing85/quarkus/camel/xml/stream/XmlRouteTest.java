@@ -1,5 +1,8 @@
 package de.turing85.quarkus.camel.xml.stream;
 
+import java.io.IOException;
+import java.nio.charset.Charset;
+
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -12,52 +15,23 @@ import static org.hamcrest.Matchers.is;
 @QuarkusTest
 class XmlRouteTest {
   @Test
-  void testXmlRoute() {
+  void testXmlRoute() throws IOException {
     // @formatter:off
     RestAssured
         .given()
-            .contentType(MediaType.APPLICATION_XML)
-            .accept(MediaType.APPLICATION_XML)
-            .body("""
-                <foo>
-                    <bar>
-                        <request>
-                <baz>
-                    <bang>1337</bang>
-                </baz>
-                        </request>
-                    </bar>
-                    <bing>
-                        <response>
-                <bongo>
-                    420
-                </bongo>
-                        </response>
-                    </bing>
-                </foo>
-                """)
+            .contentType(MediaType.APPLICATION_XML + ";charset=ISO-8859-15")
+            .accept(MediaType.APPLICATION_XML + ";charset=ISO-8859-15")
+            .body(getClass().getClassLoader().getResourceAsStream("input.xml"))
 
         .when().post("/xml")
 
         .then()
             .statusCode(is(Response.Status.OK.getStatusCode()))
-            .body(is("""
-                <extracted>
-                    <request>
-                <baz>
-                    <bang>1337</bang>
-                </baz>
-                    </request>
-                    <response>
-                <bongo>
-                    420
-                </bongo>
-                    </response>
-                    <additionalProperties>
-                        <bang>1337</bang>
-                        <bongo>420</bongo>
-                    </additionalProperties>
-                </extracted>"""));
+            .body(is(new String(
+                getClass().getClassLoader()
+                    .getResourceAsStream("expected.xml.txt")
+                    .readAllBytes(),
+                Charset.forName("ISO-8859-15"))));
     // @formatter:on
   }
 }

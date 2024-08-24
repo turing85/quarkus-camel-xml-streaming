@@ -1,0 +1,16 @@
+<extracted>
+    <request>
+<baz>
+    <bang>1337</bang>
+</baz>
+    </request>
+    <response>
+<bongo>
+    ÄÖ
+</bongo>
+    </response>
+    <additionalProperties>
+        <bang>1337</bang>
+        <bongo>ÄÖ</bongo>
+    </additionalProperties>
+</extracted>
