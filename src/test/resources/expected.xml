@@ -2,15 +2,18 @@
     <request>
 <baz>
     <bang>1337</bang>
+    <request>
+<boom>42</boom>
+    </request>
 </baz>
     </request>
     <response>
 <bongo>
-    ÄÖ
+    Ã„Ã–
 </bongo>
     </response>
     <additionalProperties>
         <bang>1337</bang>
-        <bongo>ÄÖ</bongo>
+        <bongo>Ã„Ã–</bongo>
     </additionalProperties>
 </extracted>

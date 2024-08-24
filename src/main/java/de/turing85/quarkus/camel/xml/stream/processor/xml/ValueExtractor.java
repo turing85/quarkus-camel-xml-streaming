@@ -1,4 +1,4 @@
-package de.turing85.quarkus.camel.xml.stream.processor;
+package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -15,7 +15,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @AllArgsConstructor
-public class ValueExtractor implements XMLExtractor {
+class ValueExtractor implements XMLExtractor {
   @Getter
   private final String name;
   private boolean isActive;
@@ -23,7 +23,7 @@ public class ValueExtractor implements XMLExtractor {
 
   private StringWriter writer;
 
-  public ValueExtractor(String name) throws IOException {
+  ValueExtractor(String name) throws IOException {
     this.name = name;
     this.isActive = false;
     this.values = new HashSet<>();
@@ -60,6 +60,7 @@ public class ValueExtractor implements XMLExtractor {
     }
   }
 
+  @Override
   public Set<String> getValues() {
     return Collections.unmodifiableSet(values);
   }
