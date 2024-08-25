@@ -2,7 +2,7 @@ package de.turing85.quarkus.camel.xml.stream;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.core.MediaType;
@@ -35,31 +35,32 @@ public class XmlRoute extends RouteBuilder {
     // @formatter:on
   }
 
-  @SuppressWarnings("unchecked")
   private static void constructBody(Exchange exchange) {
-    String request = """
-            <request>
-        %s
-            </request>""".formatted(exchange.getProperty(XmlProcessor.PROPERTY_NAME_REQUEST));
-    String response = """
-            <response>
-        %s
-            </response>""".formatted(exchange.getProperty(XmlProcessor.PROPERTY_NAME_RESPONSE));
-    StringBuilder additionalValuesString =
-        new StringBuilder("    <additionalProperties>").append(System.lineSeparator());
-    TreeMap<String, String> additionalValues = new TreeMap<>(String::compareTo);
-    additionalValues
-        .putAll(exchange.getProperty(XmlProcessor.PROPERTY_NAME_ADDITIONAL_VALUES, Map.class));
-    additionalValues.forEach((key, value) -> additionalValuesString
-        .append("        <%1$s>%2$s</%1$s>".formatted(key, value.trim()))
-        .append(System.lineSeparator()));
-    additionalValuesString.append("    </additionalProperties>");
+    @SuppressWarnings("unchecked")
+    Map<String, String> additionalValues =
+        exchange.getProperty(XmlProcessor.PROPERTY_NAME_ADDITIONAL_VALUES, Map.class);
+    // @formatter:off
     exchange.getIn().setBody("""
         <extracted>
+            <request>
         %s
+            </request>
+            <response>
         %s
+            </response>
+            <additionalProperties>
         %s
-        </extracted>""".formatted(request, response, additionalValuesString.toString()),
-        String.class);
+            </additionalProperties>
+        </extracted>"""
+        .formatted(
+            exchange.getProperty(XmlProcessor.PROPERTY_NAME_REQUEST),
+            exchange.getProperty(XmlProcessor.PROPERTY_NAME_RESPONSE),
+            additionalValues.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByKey())
+                .map(entry -> "        <%1$s>%2$s</%1$s>"
+                    .formatted(entry.getKey(), entry.getValue().trim()))
+                .collect(Collectors.joining("\n"))));
+    // @formatter:on
   }
 }
