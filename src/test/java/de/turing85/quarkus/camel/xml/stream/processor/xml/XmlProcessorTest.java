@@ -1,8 +1,10 @@
 package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
+import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.truth.Truth;
 import groovy.util.logging.Slf4j;
@@ -14,35 +16,32 @@ class XmlProcessorTest {
   @Test
   void perfTest() throws Exception {
     final XmlProcessor uut = new XmlProcessor();
-    String input = """
-        <?xml version="1.0" encoding="ISO-8859-15" ?>
-        <foo>
-            <bar>
+    String input = new String(
+        Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("input.xml"))
+            .readAllBytes(),
+        Charset.forName("ISO-8859-15"));
+    List<String> valuesToExtract = List.of("bang", "bongo", "empty", "anotherEmpty");
+    // @formatter:off
+    XmlProcessor.Result expected = new XmlProcessor.Result(
+        List.of("""
+            <baz>
+                <bang>1337</bang>
                 <request>
-        <baz>
-            <bang>1337</bang>
-        </baz>
+            <boom>42</boom>
                 </request>
-            </bar>
-            <bing>
-                <response>
-        <bongo>
-            ÄÖ
-        </bongo>
-                </response>
-            </bing>
-        </foo>""";
-    List<String> valuesToExtract = List.of("bang", "bongo");
-    XmlProcessor.Result expected = new XmlProcessor.Result(List.of("""
-        <baz>
-            <bang>1337</bang>
-        </baz>"""), List.of("""
-        <bongo>
-            ÄÖ
-        </bongo>"""), Map.of("bang", List.of("1337"), "bongo", List.of("\n    ÄÖ\n")));
-
+            </baz>"""),
+        List.of("""
+            <bongo>
+                ÄÖ
+            </bongo>"""),
+        Map.of(
+            "bang", List.of("1337"),
+            "bongo", List.of("\n    ÄÖ\n"),
+            "empty", List.of(""),
+            "anotherEmpty", List.of("")));
+    // @formatter:on
     log.info("Warming up");
-    int runs = 50_000;
+    int runs = 20_000;
     for (int i = 1; i <= runs; i++) {
       run(uut, input, valuesToExtract, expected);
     }
@@ -53,11 +52,9 @@ class XmlProcessorTest {
     for (int i = 1; i <= runs; i++) {
       consumed += run(uut, input, valuesToExtract, expected);
       if (i % 100_000 == 0) {
-        logStats(i, consumed);
+        log.info("{} xmls in {}", "%4dk".formatted(i / 1_000), Duration.ofNanos(consumed));
       }
     }
-    log.info("Final stats:");
-    logStats(runs, consumed);
   }
 
   private static long run(XmlProcessor uut, String input, List<String> valuesToExtract,
@@ -71,7 +68,4 @@ class XmlProcessorTest {
     return consumed;
   }
 
-  private static void logStats(int runs, long consumed) {
-    log.info("{} xmls in {}", "%7d".formatted(runs), Duration.ofNanos(consumed));
-  }
 }

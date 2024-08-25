@@ -18,7 +18,6 @@ class TagBodyExtractor implements XMLExtractor {
 
   private final Map<List<String>, List<String>> values;
 
-  private boolean lastWasStart;
   private boolean recordStart;
   private int startIndex;
   private int elementCounter;
@@ -27,7 +26,6 @@ class TagBodyExtractor implements XMLExtractor {
     this.name = name;
     this.input = input;
     values = new TreeMap<>(Comparator.comparing(List::size));
-    lastWasStart = false;
     recordStart = false;
     startIndex = -1;
     elementCounter = 0;
@@ -37,19 +35,23 @@ class TagBodyExtractor implements XMLExtractor {
   public void handleStartElement(StartElement startElement, List<String> path) {
     if (startElement.getName().getLocalPart().equals(name)) {
       elementCounter++;
-      lastWasStart = true;
-    } else if (recordStart) {
+      recordStart = true;
+    } else {
+      if (recordStart && startIndex == -1) {
+        startIndex = startElement.getLocation().getCharacterOffset();
+      }
       recordStart = false;
-      startIndex = startElement.getLocation().getCharacterOffset();
     }
   }
 
   @Override
-  public void handleEventRecording(XMLEvent event, List<String> path) {
-    if (lastWasStart && startIndex == -1) {
-      recordStart = true;
-      lastWasStart = false;
-    }
+  public boolean recordsEvents() {
+    return false;
+  }
+
+  @Override
+  public void recordEvent(XMLEvent event, List<String> path) {
+    // NOOP
   }
 
   @Override
@@ -58,16 +60,30 @@ class TagBodyExtractor implements XMLExtractor {
       --elementCounter;
       if (elementCounter == 0) {
         values.putIfAbsent(path, new ArrayList<>());
-        values.get(path)
-            .add(input.substring(startIndex, endElement.getLocation().getCharacterOffset()).trim());
+        String value = extractSubstringFromInput(this.startIndex,
+            endElement.getLocation().getCharacterOffset());
+        values.get(path).add(value);
         startIndex = -1;
       }
     }
   }
 
+  private String extractSubstringFromInput(int startIndex, int endIndex) {
+    if (startIndex > -1) {
+      return input.substring(startIndex, endIndex).trim();
+    } else {
+      return "";
+    }
+  }
+
   @Override
   public Set<String> getValues() {
-    return values.entrySet().stream().sorted().map(Map.Entry::getValue).flatMap(List::stream)
+    // @formatter:off
+    return values.entrySet().stream()
+        .sorted(Comparator.comparingInt(entry -> entry.getKey().size()))
+        .map(Map.Entry::getValue)
+        .flatMap(List::stream)
         .collect(Collectors.toUnmodifiableSet());
+    // @formatter:on
   }
 }
