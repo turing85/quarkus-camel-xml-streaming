@@ -30,11 +30,13 @@ class XmlProcessorTest {
                 <request>
             <boom>42</boom>
                 </request>
-            </baz>"""),
+            </baz>""",
+            ""),
         List.of("""
             <bongo>
                 ÄÖ
-            </bongo>"""),
+            </bongo>
+            <request/>"""),
         Map.of(
             "bang", List.of("1337", "42"),
             "bongo", List.of("\n    ÄÖ\n"),
