@@ -3,7 +3,7 @@
     <suppress>
         <notes>
             We are on Camel >= 4.7.0, so we are not affected.
-            The plugin thinks we are affected because we use org.apache.camel.quarkus:camel-quarkus-xpath 3.13.0.
+            The plugin thinks we are affected because we use org.apache.camel.quarkus:* in version 3.13.0.
         </notes>
         <cve>CVE-2023-34442</cve>
     </suppress>

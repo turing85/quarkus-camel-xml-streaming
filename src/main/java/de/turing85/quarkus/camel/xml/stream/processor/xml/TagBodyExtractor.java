@@ -1,12 +1,9 @@
 package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
@@ -16,7 +13,7 @@ class TagBodyExtractor implements XMLExtractor {
   private final String name;
   private final String input;
 
-  private final Map<List<String>, List<String>> values;
+  private final SortedMap<Integer, List<String>> values;
 
   private boolean recordStart;
   private int startIndex;
@@ -25,14 +22,14 @@ class TagBodyExtractor implements XMLExtractor {
   TagBodyExtractor(String name, String input) {
     this.name = name;
     this.input = input;
-    values = new TreeMap<>(Comparator.comparing(List::size));
+    values = new TreeMap<>();
     recordStart = false;
     startIndex = -1;
     elementCounter = 0;
   }
 
   @Override
-  public void handleStartElement(StartElement startElement, List<String> path) {
+  public void handleStartElement(StartElement startElement, int depth) {
     if (startElement.getName().getLocalPart().equals(name)) {
       elementCounter++;
       recordStart = true;
@@ -50,19 +47,19 @@ class TagBodyExtractor implements XMLExtractor {
   }
 
   @Override
-  public void recordEvent(XMLEvent event, List<String> path) {
+  public void recordEvent(XMLEvent event, int depth) {
     // NOOP
   }
 
   @Override
-  public void handleEndElement(EndElement endElement, List<String> path) {
+  public void handleEndElement(EndElement endElement, int depth) {
     if (endElement.getName().getLocalPart().equals(name)) {
       --elementCounter;
       if (elementCounter == 0) {
-        values.putIfAbsent(path, new ArrayList<>());
+        values.putIfAbsent(depth, new ArrayList<>());
         String value = extractSubstringFromInput(this.startIndex,
             endElement.getLocation().getCharacterOffset());
-        values.get(path).add(value);
+        values.get(depth).add(value);
         startIndex = -1;
       }
     }
@@ -77,13 +74,11 @@ class TagBodyExtractor implements XMLExtractor {
   }
 
   @Override
-  public Set<String> getValues() {
+  public List<String> getValues() {
     // @formatter:off
-    return values.entrySet().stream()
-        .sorted(Comparator.comparingInt(entry -> entry.getKey().size()))
-        .map(Map.Entry::getValue)
+    return List.copyOf(values.values().stream()
         .flatMap(List::stream)
-        .collect(Collectors.toUnmodifiableSet());
+        .toList());
     // @formatter:on
   }
 }

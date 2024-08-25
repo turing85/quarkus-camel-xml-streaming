@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import com.google.common.truth.Truth;
 import groovy.util.logging.Slf4j;
@@ -15,17 +16,17 @@ import org.junit.jupiter.api.Test;
 class XmlProcessorTest {
   @Test
   void perfTest() throws Exception {
-    final XmlProcessor uut = new XmlProcessor();
     String input = new String(
         Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("input.xml"))
             .readAllBytes(),
         Charset.forName("ISO-8859-15"));
-    List<String> valuesToExtract = List.of("bang", "bongo", "empty", "anotherEmpty");
+    Set<String> valuesToExtract = Set.of("bang", "bongo", "empty", "anotherEmpty");
     // @formatter:off
     XmlProcessor.Result expected = new XmlProcessor.Result(
         List.of("""
             <baz>
                 <bang>1337</bang>
+                <bang>42</bang>
                 <request>
             <boom>42</boom>
                 </request>
@@ -35,7 +36,7 @@ class XmlProcessorTest {
                 ÄÖ
             </bongo>"""),
         Map.of(
-            "bang", List.of("1337"),
+            "bang", List.of("1337", "42"),
             "bongo", List.of("\n    ÄÖ\n"),
             "empty", List.of(""),
             "anotherEmpty", List.of("")));
@@ -43,24 +44,24 @@ class XmlProcessorTest {
     log.info("Warming up");
     int runs = 20_000;
     for (int i = 1; i <= runs; i++) {
-      run(uut, input, valuesToExtract, expected);
+      run(input, valuesToExtract, expected);
     }
 
     log.info("Warmup done!");
     long consumed = 0;
-    runs = 1_000_000;
+    runs = 100_000;
     for (int i = 1; i <= runs; i++) {
-      consumed += run(uut, input, valuesToExtract, expected);
-      if (i % 100_000 == 0) {
-        log.info("{} xmls in {}", "%4dk".formatted(i / 1_000), Duration.ofNanos(consumed));
+      consumed += run(input, valuesToExtract, expected);
+      if (i % 10_000 == 0) {
+        log.info("{} xmls in {}", "%3dk".formatted(i / 1_000), Duration.ofNanos(consumed));
       }
     }
   }
 
-  private static long run(XmlProcessor uut, String input, List<String> valuesToExtract,
-      XmlProcessor.Result expected) throws Exception {
+  private static long run(String input, Set<String> valuesToExtract, XmlProcessor.Result expected)
+      throws Exception {
     long start = System.nanoTime();
-    XmlProcessor.Result actual = uut.parse(input, valuesToExtract);
+    XmlProcessor.Result actual = XmlProcessor.parse(input, valuesToExtract);
     long consumed = System.nanoTime() - start;
 
     // then

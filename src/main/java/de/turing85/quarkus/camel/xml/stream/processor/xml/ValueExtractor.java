@@ -1,11 +1,8 @@
 package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
-import java.io.IOException;
-import java.io.StringWriter;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.xml.stream.events.EndElement;
 import javax.xml.stream.events.StartElement;
@@ -18,50 +15,44 @@ import lombok.Getter;
 class ValueExtractor implements XMLExtractor {
   @Getter
   private final String name;
-  private boolean recordValue;
+
   private final Set<String> values;
+  private StringBuilder builder;
+  private boolean recordValue;
 
-  private StringWriter writer;
 
-  ValueExtractor(String name) throws IOException {
+  ValueExtractor(String name) {
     this.name = name;
     recordValue = false;
-    values = new HashSet<>();
-    initializeWriter();
-  }
-
-  private void initializeWriter() throws IOException {
-    if (writer != null) {
-      writer.close();
-    }
-    writer = new StringWriter();
+    values = new TreeSet<>();
+    builder = new StringBuilder();
   }
 
   @Override
-  public void handleStartElement(StartElement startElement, List<String> path) {
+  public void handleStartElement(StartElement startElement, int depth) {
     if (startElement.getName().getLocalPart().equals(name())) {
       recordValue = true;
     }
   }
 
   @Override
-  public void recordEvent(XMLEvent event, List<String> path) {
+  public void recordEvent(XMLEvent event, int depth) {
     if (recordValue && event.isCharacters()) {
-      writer.append(event.asCharacters().getData());
+      builder.append(event.asCharacters().getData());
     }
   }
 
   @Override
-  public void handleEndElement(EndElement endElement, List<String> path) throws IOException {
+  public void handleEndElement(EndElement endElement, int depth) {
     if (endElement.getName().getLocalPart().equals(name())) {
       recordValue = false;
-      values.add(writer.toString());
-      initializeWriter();
+      values.add(builder.toString());
+      builder = new StringBuilder();
     }
   }
 
   @Override
-  public Set<String> getValues() {
-    return Collections.unmodifiableSet(values);
+  public List<String> getValues() {
+    return List.copyOf(values);
   }
 }
