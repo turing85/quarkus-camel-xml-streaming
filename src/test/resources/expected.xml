@@ -2,6 +2,7 @@
     <request>
 <baz>
     <bang>1337</bang>
+    <bang>42</bang>
     <request>
 <boom>42</boom>
     </request>

@@ -1,7 +1,7 @@
 package de.turing85.quarkus.camel.xml.stream;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import jakarta.inject.Singleton;
@@ -27,12 +27,10 @@ public class XmlRoute extends RouteBuilder {
         .httpMethodRestrict(HttpMethod.POST.name())
         .consumes(MediaType.APPLICATION_XML)
         .produces(MediaType.APPLICATION_XML))
-        .log("charset = ${header.%s}".formatted(Exchange.CHARSET_NAME))
         .setProperty(XmlProcessor.PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT,
-            constant(List.of("bang", "bongo")))
+            constant(Set.of("bang", "bongo")))
         .process(processor)
         .process(XmlRoute::constructBody)
-        .convertBodyTo(byte[].class, "UTF-8")
     ;
     // @formatter:on
   }
