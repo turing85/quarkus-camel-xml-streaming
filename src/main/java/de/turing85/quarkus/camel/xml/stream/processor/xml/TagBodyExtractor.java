@@ -16,9 +16,10 @@ class TagBodyExtractor implements XMLExtractor {
   private final String name;
   private final String input;
 
+  private final Map<List<String>, List<String>> values;
+
   private boolean lastWasStart;
   private boolean recordStart;
-  private final Map<List<String>, List<String>> values;
   private int startIndex;
   private int elementCounter;
 
@@ -34,19 +35,18 @@ class TagBodyExtractor implements XMLExtractor {
 
   @Override
   public void handleStartElement(StartElement startElement, List<String> path) {
-    String elementName = startElement.getName().getLocalPart();
-    if (elementName.equals(name)) {
+    if (startElement.getName().getLocalPart().equals(name)) {
       elementCounter++;
       lastWasStart = true;
-    } else if (recordStart && startIndex == -1) {
-      startIndex = startElement.getLocation().getCharacterOffset();
+    } else if (recordStart) {
       recordStart = false;
+      startIndex = startElement.getLocation().getCharacterOffset();
     }
   }
 
   @Override
   public void handleEventRecording(XMLEvent event, List<String> path) {
-    if (lastWasStart && startIndex == -1 && !recordStart) {
+    if (lastWasStart && startIndex == -1) {
       recordStart = true;
       lastWasStart = false;
     }
@@ -54,8 +54,7 @@ class TagBodyExtractor implements XMLExtractor {
 
   @Override
   public void handleEndElement(EndElement endElement, List<String> path) {
-    String elementName = endElement.getName().getLocalPart();
-    if (elementName.equals(name)) {
+    if (endElement.getName().getLocalPart().equals(name)) {
       --elementCounter;
       if (elementCounter == 0) {
         values.putIfAbsent(path, new ArrayList<>());
