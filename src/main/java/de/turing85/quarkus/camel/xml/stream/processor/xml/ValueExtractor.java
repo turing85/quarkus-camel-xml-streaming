@@ -18,15 +18,15 @@ import lombok.Getter;
 class ValueExtractor implements XMLExtractor {
   @Getter
   private final String name;
-  private boolean isActive;
+  private boolean recordValue;
   private final Set<String> values;
 
   private StringWriter writer;
 
   ValueExtractor(String name) throws IOException {
     this.name = name;
-    this.isActive = false;
-    this.values = new HashSet<>();
+    recordValue = false;
+    values = new HashSet<>();
     initializeWriter();
   }
 
@@ -40,13 +40,13 @@ class ValueExtractor implements XMLExtractor {
   @Override
   public void handleStartElement(StartElement startElement, List<String> path) {
     if (startElement.getName().getLocalPart().equals(name())) {
-      isActive = true;
+      recordValue = true;
     }
   }
 
   @Override
   public void handleEventRecording(XMLEvent event, List<String> path) {
-    if (isActive && event.isCharacters()) {
+    if (recordValue && event.isCharacters()) {
       writer.append(event.asCharacters().getData());
     }
   }
@@ -54,7 +54,7 @@ class ValueExtractor implements XMLExtractor {
   @Override
   public void handleEndElement(EndElement endElement, List<String> path) throws IOException {
     if (endElement.getName().getLocalPart().equals(name())) {
-      isActive = false;
+      recordValue = false;
       values.add(writer.toString());
       initializeWriter();
     }

@@ -48,10 +48,13 @@ public class XmlProcessor implements Processor {
 
   Result parse(String input, List<String> additionalValuesToExtract) throws Exception {
     Map<String, XMLExtractor> extractors = new HashMap<>();
+
     TagBodyExtractor requestExtractor = new TagBodyExtractor("request", input);
     extractors.put("INTERNAL-request", requestExtractor);
+
     TagBodyExtractor responseExtractor = new TagBodyExtractor("response", input);
     extractors.put("INTERNAL-response", responseExtractor);
+
     for (String additionalValue : additionalValuesToExtract) {
       extractors.put(additionalValue, new ValueExtractor(additionalValue));
     }
