@@ -45,7 +45,7 @@ class ValueExtractor implements XMLExtractor {
   }
 
   @Override
-  public void handleEventRecording(XMLEvent event, List<String> path) {
+  public void recordEvent(XMLEvent event, List<String> path) {
     if (recordValue && event.isCharacters()) {
       writer.append(event.asCharacters().getData());
     }

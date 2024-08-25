@@ -1,5 +1,6 @@
 package de.turing85.quarkus.camel.xml.stream.processor.xml;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,6 +48,12 @@ public class XmlProcessor implements Processor {
   }
 
   Result parse(String input, List<String> additionalValuesToExtract) throws Exception {
+    Map<String, XMLExtractor> extractors = constructExtractors(input, additionalValuesToExtract);
+    return parse(input, extractors);
+  }
+
+  private static Map<String, XMLExtractor> constructExtractors(String input,
+      List<String> additionalValuesToExtract) throws IOException {
     Map<String, XMLExtractor> extractors = new HashMap<>();
 
     TagBodyExtractor requestExtractor = new TagBodyExtractor("request", input);
@@ -58,7 +65,11 @@ public class XmlProcessor implements Processor {
     for (String additionalValue : additionalValuesToExtract) {
       extractors.put(additionalValue, new ValueExtractor(additionalValue));
     }
+    return extractors;
+  }
 
+  private static Result parse(String input, Map<String, XMLExtractor> extractors) throws Exception {
+    ExtractorGroups extractorGroups = groupExtractors(extractors);
     XMLEventReader reader = INPUT_FACTORY.createXMLEventReader(new StringReader(input));
     List<String> path = new ArrayList<>();
     List<String> unmodifiable = List.copyOf(path);
@@ -68,16 +79,16 @@ public class XmlProcessor implements Processor {
         StartElement startElement = event.asStartElement();
         path.add(startElement.getName().getLocalPart());
         unmodifiable = List.copyOf(path);
-        for (XMLExtractor extractor : extractors.values()) {
+        for (XMLExtractor extractor : extractorGroups.startElementHandlers()) {
           extractor.handleStartElement(startElement, unmodifiable);
         }
       }
-      for (XMLExtractor extractor : extractors.values()) {
-        extractor.handleEventRecording(event, unmodifiable);
+      for (XMLExtractor extractor : extractorGroups.eventRecorders()) {
+        extractor.recordEvent(event, unmodifiable);
       }
       if (event.isEndElement()) {
         EndElement endElement = event.asEndElement();
-        for (XMLExtractor extractor : extractors.values()) {
+        for (XMLExtractor extractor : extractorGroups.endElementHandlers()) {
           extractor.handleEndElement(endElement, unmodifiable);
         }
         path.removeLast();
@@ -86,8 +97,8 @@ public class XmlProcessor implements Processor {
     }
     // @formatter:off
     return new Result(
-        List.copyOf(requestExtractor.getValues()),
-        List.copyOf(responseExtractor.getValues()),
+        List.copyOf(extractors.get("INTERNAL-request").getValues()),
+        List.copyOf(extractors.get("INTERNAL-response").getValues()),
         extractors.entrySet().stream()
             .filter(not(entry -> entry.getKey().startsWith("INTERNAL")))
             .collect(Collectors.toMap(
@@ -95,6 +106,27 @@ public class XmlProcessor implements Processor {
                 entry -> List.copyOf(entry.getValue().getValues()))));
     // @formatter:on
   }
+
+  private static ExtractorGroups groupExtractors(Map<String, XMLExtractor> extractors) {
+    List<XMLExtractor> startElementHandlers = new ArrayList<>();
+    List<XMLExtractor> eventRecorders = new ArrayList<>();
+    List<XMLExtractor> endElementHandlers = new ArrayList<>();
+    for (XMLExtractor extractor : extractors.values()) {
+      if (extractor.handlesStartEvents()) {
+        startElementHandlers.add(extractor);
+      }
+      if (extractor.recordsEvents()) {
+        eventRecorders.add(extractor);
+      }
+      if (extractor.handlesEndEvents()) {
+        endElementHandlers.add(extractor);
+      }
+    }
+    return new ExtractorGroups(startElementHandlers, eventRecorders, endElementHandlers);
+  }
+
+  private record ExtractorGroups(List<XMLExtractor> startElementHandlers,
+      List<XMLExtractor> eventRecorders, List<XMLExtractor> endElementHandlers) {}
 
   record Result(List<String> requests, List<String> responses,
       Map<String, List<String>> additionalValues) {}

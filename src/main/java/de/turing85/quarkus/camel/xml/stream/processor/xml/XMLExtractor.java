@@ -8,9 +8,21 @@ import javax.xml.stream.events.StartElement;
 import javax.xml.stream.events.XMLEvent;
 
 public interface XMLExtractor {
+  default boolean handlesStartEvents() {
+    return true;
+  }
+
   void handleStartElement(StartElement startElement, List<String> path) throws Exception;
 
-  void handleEventRecording(XMLEvent event, List<String> path) throws Exception;
+  default boolean recordsEvents() {
+    return true;
+  }
+
+  void recordEvent(XMLEvent event, List<String> path) throws Exception;
+
+  default boolean handlesEndEvents() {
+    return true;
+  }
 
   void handleEndElement(EndElement endElement, List<String> path) throws Exception;
 
