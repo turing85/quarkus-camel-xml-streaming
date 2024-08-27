@@ -36,7 +36,6 @@ public class XmlRoute extends RouteBuilder {
             .httpMethodRestrict(HttpMethod.POST.name())
             .consumes(MediaType.APPLICATION_XML + ";charset=ISO-8859-15")
             .produces(MediaType.APPLICATION_XML))
-        .log("headers: ${headers}")
         .setProperty(XmlProcessor.PROPERTY_NAME_ADDITIONAL_VALUES_TO_EXTRACT,
             constant(Set.of("bang", "bongo")))
         .process(processor)
