@@ -10,12 +10,12 @@
     </request>
     <response>
 <bongo>
-    Ã„Ã–
+    ÄÖ
 </bongo>
 <request/>
     </response>
     <additionalProperties>
         <bang>1337</bang>
-        <bongo>Ã„Ã–</bongo>
+        <bongo>ÄÖ</bongo>
     </additionalProperties>
 </extracted>
