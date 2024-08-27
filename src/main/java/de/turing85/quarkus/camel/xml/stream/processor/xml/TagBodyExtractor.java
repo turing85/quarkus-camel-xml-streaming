@@ -56,10 +56,9 @@ class TagBodyExtractor implements XMLExtractor {
     if (endElement.getName().getLocalPart().equals(name)) {
       --elementCounter;
       if (elementCounter == 0) {
-        values.putIfAbsent(depth, new ArrayList<>());
         String value = extractSubstringFromInput(this.startIndex,
             endElement.getLocation().getCharacterOffset());
-        values.get(depth).add(value);
+        values.computeIfAbsent(depth, unused -> new ArrayList<>()).add(value);
         startIndex = -1;
       }
     }
