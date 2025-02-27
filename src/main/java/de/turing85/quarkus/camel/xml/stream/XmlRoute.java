@@ -61,11 +61,9 @@ public class XmlRoute extends RouteBuilder {
     Message in = exchange.getIn();
     // @formatter:off
     in.setHeaders(Map.of(
-        Exchange.HTTP_CHARACTER_ENCODING,
-        charset,
-
         Exchange.CONTENT_TYPE,
-        "%s;charset=%s".formatted(in.getHeader(Exchange.CONTENT_TYPE, String.class), charset)));
+        "%s;charset=%s".formatted(in.getHeader(Exchange.CONTENT_TYPE, String.class), charset))
+    );
     // @formatter:on
     in.setBody(in.getBody(String.class).getBytes(Charset.forName(charset)));
   }
