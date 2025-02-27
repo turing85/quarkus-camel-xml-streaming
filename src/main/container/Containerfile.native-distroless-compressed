@@ -3,8 +3,8 @@ ARG DISTROLESS_IMAGE="quay.io/quarkus/quarkus-distroless-image:2.0-2024-08-04@sh
 
 FROM ${COMPRESSOR_IMAGE} AS compressor
 ARG UPX_INSTALLATION_COMMAND="apk add \
-    libgcc=13.2.1_git20240309-r0 \
-    libstdc++=13.2.1_git20240309-r0 \
+    libgcc=13.2.1_git20240309-r1 \
+    libstdc++=13.2.1_git20240309-r1 \
     upx=4.2.4-r0 \
   && rm -rf /var/cache/apt/*"
 ARG UPX_COMPRESSION_MODE="--fast"
