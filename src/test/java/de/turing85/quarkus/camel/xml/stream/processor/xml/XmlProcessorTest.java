@@ -8,10 +8,9 @@ import java.util.Objects;
 import java.util.Set;
 
 import com.google.common.truth.Truth;
-import groovy.util.logging.Slf4j;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 
-@lombok.extern.slf4j.Slf4j
 @Slf4j
 class XmlProcessorTest {
   @Test
