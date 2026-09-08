@@ -22,7 +22,7 @@
 
         <!-- Dependency versions -->
         <aalto-xml.version>1.4.0</aalto-xml.version>
-        <lombok.version>1.18.46</lombok.version>
+        <lombok.version>1.18.48</lombok.version>
         <truth.version>1.4.5</truth.version>
 
         <!-- Quarkus versions -->
